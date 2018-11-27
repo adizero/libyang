@@ -2631,6 +2631,23 @@ reparse_equality_expr:
     return EXIT_SUCCESS;
 }
 
+int lyxp_find_repeated_expr(struct ly_ctx *ctx, struct lyxp_expr *exp) {
+    uint16_t exp_idx = 0;
+    int rc;
+
+    rc = reparse_or_expr(ctx, exp, &exp_idx);
+    if (rc) {
+        return rc;
+    } else if (exp->used > exp_idx) {
+        LOGVAL(ctx, LYE_XPATH_INTOK, LY_VLOG_NONE, NULL, "Unknown", &exp->expr[exp->expr_pos[exp_idx]]);
+        LOGVAL(ctx, LYE_SPEC, LY_VLOG_NONE, NULL, "Unparsed characters \"%s\" left at the end of an XPath expression.",
+               &exp->expr[exp->expr_pos[exp_idx]]);
+        return -1;
+    }
+
+    return EXIT_SUCCESS;
+}
+
 /**
  * @brief Parse NCName.
  *
@@ -8595,14 +8612,8 @@ lyxp_eval(const char *expr, const struct lyd_node *cur_node, enum lyxp_node_type
         goto finish;
     }
 
-    rc = reparse_or_expr(ctx, exp, &exp_idx);
+    rc = lyxp_find_repeated_expr(ctx, exp);
     if (rc) {
-        goto finish;
-    } else if (exp->used > exp_idx) {
-        LOGVAL(ctx, LYE_XPATH_INTOK, LY_VLOG_NONE, NULL, "Unknown", &exp->expr[exp->expr_pos[exp_idx]]);
-        LOGVAL(ctx, LYE_SPEC, LY_VLOG_NONE, NULL, "Unparsed characters \"%s\" left at the end of an XPath expression.",
-               &exp->expr[exp->expr_pos[exp_idx]]);
-        rc = -1;
         goto finish;
     }
 
@@ -8891,14 +8902,8 @@ lyxp_atomize(const char *expr, const struct lys_node *cur_snode, enum lyxp_node_
         goto finish;
     }
 
-    rc = reparse_or_expr(cur_snode->module->ctx, exp, &exp_idx);
+    rc = lyxp_find_repeated_expr(cur_snode->module->ctx, exp);
     if (rc) {
-        goto finish;
-    } else if (exp->used > exp_idx) {
-        LOGVAL(cur_snode->module->ctx, LYE_XPATH_INTOK, LY_VLOG_NONE, NULL, "Unknown", &exp->expr[exp->expr_pos[exp_idx]]);
-        LOGVAL(cur_snode->module->ctx, LYE_SPEC, LY_VLOG_NONE, NULL, "Unparsed characters \"%s\" left at the end of an XPath expression.",
-               &exp->expr[exp->expr_pos[exp_idx]]);
-        rc = -1;
         goto finish;
     }
 
@@ -9127,7 +9132,6 @@ int
 lyxp_node_check_syntax(const struct lys_node *node)
 {
     uint8_t must_size = 0;
-    uint16_t exp_idx;
     uint32_t i;
     struct lys_when *when = NULL;
     struct lys_restr *must = NULL;
@@ -9193,13 +9197,7 @@ lyxp_node_check_syntax(const struct lys_node *node)
             return -1;
         }
 
-        exp_idx = 0;
-        if (reparse_or_expr(node->module->ctx, expr, &exp_idx)) {
-            lyxp_expr_free(expr);
-            return -1;
-        } else if (exp_idx != expr->used) {
-            LOGVAL(node->module->ctx, LYE_XPATH_INTOK, LY_VLOG_NONE, NULL,
-                   print_token(expr->tokens[exp_idx]), &expr->expr[expr->expr_pos[exp_idx]]);
+        if (lyxp_find_repeated_expr(node->module->ctx, expr)) {
             lyxp_expr_free(expr);
             return -1;
         }
@@ -9213,13 +9211,7 @@ lyxp_node_check_syntax(const struct lys_node *node)
             return -1;
         }
 
-        exp_idx = 0;
-        if (reparse_or_expr(node->module->ctx, expr, &exp_idx)) {
-            lyxp_expr_free(expr);
-            return -1;
-        } else if (exp_idx != expr->used) {
-            LOGVAL(node->module->ctx, LYE_XPATH_INTOK, LY_VLOG_NONE, NULL,
-                   print_token(expr->tokens[exp_idx]), &expr->expr[expr->expr_pos[exp_idx]]);
+        if (lyxp_find_repeated_expr(node->module->ctx, expr)) {
             lyxp_expr_free(expr);
             return -1;
         }
