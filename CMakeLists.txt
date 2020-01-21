@@ -188,7 +188,11 @@ set(headers
     src/extensions.h
     src/user_types.h
     src/xml.h
-    src/dict.h)
+    src/dict.h
+    src/parser.h
+    src/resolve.h
+    src/tree_internal.h
+    src/xpath.h)
 
 check_symbol_exists(vdprintf "stdio.h;stdarg.h" HAVE_VDPRINTF)
 if(HAVE_VDPRINTF)
@@ -225,7 +229,7 @@ else()
     #link dl
     target_link_libraries(yang ${CMAKE_DL_LIBS})
 
-    set_target_properties(yangobj PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
+    #set_target_properties(yangobj PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
 endif(ENABLE_STATIC)
 
 set_target_properties(yang PROPERTIES VERSION ${LIBYANG_SOVERSION_FULL} SOVERSION ${LIBYANG_SOVERSION})
